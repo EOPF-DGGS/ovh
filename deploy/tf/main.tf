@@ -123,8 +123,12 @@ locals {
     "Resource" : [
       # "arn:aws:s3:::${aws_s3_bucket.g4e-data-lake.id}",
       # "arn:aws:s3:::${aws_s3_bucket.g4e-data-lake.id}/*",
-      "arn:aws:s3:::${aws_s3_bucket.g4e-reference-data.id}",
-      "arn:aws:s3:::${aws_s3_bucket.g4e-reference-data.id}/*",
+      # "arn:aws:s3:::${aws_s3_bucket.g4e-reference-data.id}",
+      # "arn:aws:s3:::${aws_s3_bucket.g4e-reference-data.id}/*",
+      "arn:aws:s3:::g4e-reference-data",  # ← Hardcode
+      "arn:aws:s3:::g4e-reference-data/*",
+      "arn:aws:s3:::grid4earth",
+      "arn:aws:s3:::grid4earth/*",  
     ]
   }
   # default-deny policy
@@ -279,8 +283,10 @@ resource "ovh_cloud_project_user_s3_policy" "s3_ifremer_developers" {
         "Resource" : [
           #"arn:aws:s3:::${aws_s3_bucket.g4e-ifremer.id}",
           #"arn:aws:s3:::${aws_s3_bucket.g4e-ifremer.id}/*",
-          "arn:aws:s3:::${aws_s3_bucket.g4e-reference-data.id}",
-          "arn:aws:s3:::${aws_s3_bucket.g4e-reference-data.id}/*",
+          # "arn:aws:s3:::${aws_s3_bucket.g4e-reference-data.id}",
+          # "arn:aws:s3:::${aws_s3_bucket.g4e-reference-data.id}/*",
+          "arn:aws:s3:::g4e-reference-data",  # ← Hardcode
+          "arn:aws:s3:::g4e-reference-data/*", 
         ]
       },
     ], local.s3_default_policy)
@@ -312,9 +318,14 @@ data "aws_canonical_user_id" "current" {}
 #   bucket = "destine-g4e-data-lake"
 # }
 
-resource "aws_s3_bucket" "g4e-reference-data" {
-  bucket = "g4e-reference-data"
-}
+# resource "aws_s3_bucket" "g4e-reference-data" {
+#   #provider = aws.admin
+#   bucket = "g4e-reference-data"
+#   lifecycle {
+#     prevent_destroy = true  # Bloque destroy
+#     ignore_changes = [versioning, server_side_encryption_configuration, logging]  # Ignore refresh 403
+#   }
+# }
 
 #resource "aws_s3_bucket" "g4e-ifremer" {
 #  bucket = "g4e-ifremer"
@@ -364,21 +375,55 @@ resource "ovh_cloud_project_storage" "grid4earth" {
 #   }
 # }
 
-resource "aws_s3_bucket_acl" "g4e-reference-data" {
-  bucket = aws_s3_bucket.g4e-reference-data.id
-  access_control_policy {
-    # everyone authenticated can read reference data
-    grant {
-      grantee {
-        type = "Group"
-        uri  = "http://acs.amazonaws.com/groups/global/AuthenticatedUsers"
-      }
-      permission = "READ"
-    }
+# resource "aws_s3_bucket_acl" "g4e-reference-data" {
+#   bucket = aws_s3_bucket.g4e-reference-data.id
 
-    owner {
-      id = data.aws_canonical_user_id.current.id
-    }
+#   access_control_policy {
+#     # everyone authenticated can read reference data
+#     grant {
+#       grantee {
+#         type = "Group"
+#         uri  = "http://acs.amazonaws.com/groups/global/AuthenticatedUsers"
+#       }
+#       permission = "READ"
+#     }
+
+#     owner {
+#       id = data.aws_canonical_user_id.current.id
+#     }
+#   }
+# }
+
+
+# resource "aws_s3_bucket_acl" "grid4earth_acl" {
+#   bucket = aws_s3_bucket.grid4earth.id
+
+#   #acl    = "authenticated-read"
+#   acl    = "public-read"
+# }
+
+## Organisation du bucket "grid4earth"
+
+# # Dossier public (public-read) dans le bucket grid4earth
+# resource "aws_s3_object" "grid4earth_public_marker" { 
+#   bucket = aws_s3_bucket.grid4earth.id
+#   key    = "public/test.txt"
+#   content = "This is a marker file to initialize public access"
+# }
+
+# resource "null_resource" "public_acl" {
+#   triggers = {
+#     bucket = aws_s3_bucket.grid4earth.id
+#     key    = aws_s3_object.grid4earth_public_marker.key
+#   }
+#   provisioner "local-exec" {
+#     command = <<EOT
+#       aws s3api put-object-acl --bucket ${aws_s3_bucket.grid4earth.bucket} --key ${aws_s3_object.grid4earth_public_marker.key} --acl public-read --endpoint-url ${local.s3_endpoint}
+#     EOT
+#   }
+# }
+
+
 
 output "project_admin_credentials" {
   sensitive = true
@@ -387,34 +432,6 @@ output "project_admin_credentials" {
     secret_access_key = ovh_cloud_project_user_s3_credential.project_admin.secret_access_key
   }
 }
-
-
-resource "aws_s3_bucket_acl" "grid4earth_acl" {
-  bucket = aws_s3_bucket.grid4earth.id
-  #acl    = "authenticated-read"
-  acl    = "public-read"
-}
-
-## Organisation du bucket "grid4earth"
-
-# Dossier public (public-read) dans le bucket grid4earth
-resource "aws_s3_object" "grid4earth_public_marker" { 
-  bucket = aws_s3_bucket.grid4earth.id
-  key    = "public/test.txt"
-  content = "This is a marker file to initialize public access"
-}
-resource "null_resource" "public_acl" {
-  triggers = {
-    bucket = aws_s3_bucket.grid4earth.id
-    key    = aws_s3_object.grid4earth_public_marker.key
-  }
-  provisioner "local-exec" {
-    command = <<EOT
-      aws s3api put-object-acl --bucket ${aws_s3_bucket.grid4earth.bucket} --key ${aws_s3_object.grid4earth_public_marker.key} --acl public-read --endpoint-url ${local.s3_endpoint}
-    EOT
-  }
-}
-
 
 
 output "s3_credentials" {
