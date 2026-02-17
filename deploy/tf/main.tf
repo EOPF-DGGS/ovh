@@ -3,7 +3,8 @@ terraform {
   required_providers {
     ovh = {
       source  = "ovh/ovh"
-      version = "~> 0.36.1"
+      #version = "~> 0.36.1"   
+      version = "~> 2.10.0"   # cf. https://registry.terraform.io/providers/ovh/ovh/latest
     }
     random = {
       source  = "hashicorp/random"
@@ -63,6 +64,7 @@ locals {
   region         = "GRA9"
   #region         = "GRA11"   # ca n'existe pas
   s3_region      = "gra"
+  s3_region_maj      = "GRA"
   #s3_endpoint    = "https://s3.gra.perf.cloud.ovh.net"
   s3_endpoint    = "https://s3.gra.io.cloud.ovh.net"
   s3_buckets = toset([
