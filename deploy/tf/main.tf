@@ -379,6 +379,12 @@ resource "aws_s3_bucket_acl" "g4e-reference-data" {
     owner {
       id = data.aws_canonical_user_id.current.id
     }
+
+output "project_admin_credentials" {
+  sensitive = true
+  value = {
+    access_key_id     = ovh_cloud_project_user_s3_credential.project_admin.access_key_id
+    secret_access_key = ovh_cloud_project_user_s3_credential.project_admin.secret_access_key
   }
 }
 
