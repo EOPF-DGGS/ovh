@@ -324,9 +324,27 @@ resource "aws_s3_bucket" "g4e-reference-data" {
 #   bucket = "g4e-vliz"
 # }
 
-resource "aws_s3_bucket" "grid4earth" {
-  bucket = "grid4earth"
+# resource "aws_s3_bucket" "grid4earth" {
+#   #provider = aws.admin
+#   bucket = "grid4earth" 
+
+#   lifecycle {
+#     prevent_destroy = true
+#     ignore_changes = [versioning, server_side_encryption_configuration, logging]
+#   }
+# }
+
+resource "ovh_cloud_project_storage" "grid4earth" {
+  service_name = local.service_name
+  region_name = local.s3_region_maj
+  name = "grid4earth"
+
+  lifecycle {
+    prevent_destroy = true
+    ignore_changes  = [versioning, encryption]
+  }
 }
+
 
 # resource "aws_s3_bucket_acl" "g4e-data-lake" {
 #   bucket = aws_s3_bucket.g4e-data-lake.id
