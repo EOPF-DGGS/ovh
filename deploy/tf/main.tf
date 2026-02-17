@@ -44,7 +44,7 @@ terraform {
 
 provider "ovh" {
   endpoint = "ovh-eu"
-  # credentials loaded via source ./secrets/ovh-creds.sh
+  # credentials loaded via source ./secrets/ovh-creds.sh   (application_key, application_secret, consumer_key)
 }
 
 provider "openstack" {
@@ -72,26 +72,29 @@ locals {
   #  "destine-g4e-data-lake",
     "grid4earth",   # ajout FP 2026m01d09
   ])
+  
 
   # users must appear in only one of these sets
   # because each user can have exactly one policy
   s3_readonly_users = toset([
     "_default",
-    "sebastien-tetaud", # Sebastien Tétaud
+    "sebastien-tetaud", # Sebastien Tétaud (ESA)
+    "vincent.dumoulin" # Vincent Dumoulin (ESA)
   ])
   s3_admins = toset([
-    "fpaulifr", # Frederic Paul
-    "j34ni", # Jean Iaquinta
+    "fpaulifr", # Frederic Paul (IFR)
+    "j34ni", # Jean Iaquinta ()
     #"todaka",
     #"minrk",
   ])
 
   s3_ifremer_developers = toset([
-    "keewis", # Justus Magin
+    "keewis", # Justus Magin (IFR)
   ])
   s3_ifremer_users = toset([
-    "jmdelouis", # Jean-Marc Delouis
-    "tinaok" # Tina Odaka
+    "jmdelouis", # Jean-Marc Delouis (IFR)
+    "tinaok", # Tina Odaka (IFR)
+    "cgueguen" # Camille Gueguen (IFR)
   ])
   # s3_vliz_users = toset([
   # ])
@@ -141,7 +144,23 @@ locals {
     local.s3_read_public,
     local.s3_default_deny,
   ]
+
 }
+
+####### Special users #######
+
+resource "ovh_cloud_project_user" "project_admin" {
+  service_name = local.service_name
+  description  = "Terraform Project admin S3"
+  role_names   = ["administrator"]  # Rôle OVH complet (bucket + objets)
+}
+
+resource "ovh_cloud_project_user_s3_credential" "project_admin" {
+  service_name = local.service_name
+  user_id      = ovh_cloud_project_user.project_admin.id
+}
+
+
 
 ####### s3 buckets #######
 
@@ -149,6 +168,7 @@ resource "ovh_cloud_project_user" "s3_admin" {
   service_name = local.service_name
   description  = "admin s3 from OpenTofu"
   role_name    = "objectstore_operator"
+  #role_names    = [ "objectstore_operator", "compute_operator" ]
 }
 
 resource "ovh_cloud_project_user_s3_credential" "s3_admin" {
@@ -160,8 +180,15 @@ resource "ovh_cloud_project_user_s3_credential" "s3_admin" {
 # Configure the AWS Provider
 provider "aws" {
   region     = local.s3_region
-  access_key = ovh_cloud_project_user_s3_credential.s3_admin.access_key_id
-  secret_key = ovh_cloud_project_user_s3_credential.s3_admin.secret_access_key
+
+  # Project admin credentials
+  access_key = ovh_cloud_project_user_s3_credential.project_admin.access_key_id
+  secret_key = ovh_cloud_project_user_s3_credential.project_admin.secret_access_key
+
+  # S3 admin credentials
+  #access_key = ovh_cloud_project_user_s3_credential.s3_admin.access_key_id
+  #secret_key = ovh_cloud_project_user_s3_credential.s3_admin.secret_access_key
+
 
   #OVH implementation has no STS service
   skip_credentials_validation = true
