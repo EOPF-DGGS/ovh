@@ -81,11 +81,22 @@ locals {
   s3_readonly_users = toset([
     "_default",
     "sebastien-tetaud", # Sebastien Tétaud (ESA)
-    "vincent.dumoulin" # Vincent Dumoulin (ESA)
+    "vincent.dumoulin", # Vincent Dumoulin (ESA)
   ])
+
+  s3_readwrite_users = toset([
+    "pablo-richard", # Pablo Richard (CNRS subcontract)
+    "benbovy", # Benoit Bovy (Georode)
+    "allixender", # Alex Kmoch (Tartu Ülikool)
+    "luikiris", # Iris Luik (Tartu Ülikool)
+    "kmch", # Kajetan Chrapkiewicz (Tartu Ülikool)
+    "annefou", # Anne Fouilloux (Lifewatch)
+    "tik65536", # Wai Tik Chan 
+  ])
+
   s3_admins = toset([
     "fpaulifr", # Frederic Paul (IFR)
-    "j34ni", # Jean Iaquinta ()
+    "j34ni", # Jean Iaquinta (Viten Hub)
     #"todaka",
     #"minrk",
   ])
@@ -96,12 +107,13 @@ locals {
   s3_ifremer_users = toset([
     "jmdelouis", # Jean-Marc Delouis (IFR)
     "tinaok", # Tina Odaka (IFR)
-    "cgueguen" # Camille Gueguen (IFR)
+    "cgueguen", # Camille Gueguen (IFR)
+    "capetienne", # Etienne CAP (IFR)
   ])
   # s3_vliz_users = toset([
   # ])
   #s3_users = setunion(local.s3_readonly_users, local.s3_admins, local.s3_vliz_users, local.s3_ifremer_developers, local.s3_ifremer_users)
-  s3_users = setunion(local.s3_readonly_users, local.s3_admins, local.s3_ifremer_developers, local.s3_ifremer_users)
+  s3_users = setunion(local.s3_readonly_users, local.s3_readwrite_users,local.s3_admins, local.s3_ifremer_developers, local.s3_ifremer_users)
   # the s3 policy Action for read-only access
   s3_readonly_action = [
     "s3:GetObject", "s3:ListBucket", "s3:GetBucketLocation",
@@ -251,6 +263,27 @@ resource "ovh_cloud_project_user_s3_policy" "s3_users" {
 
 resource "ovh_cloud_project_user_s3_policy" "s3_ifremer_users" {
   for_each     = local.s3_ifremer_users
+  service_name = local.service_name
+  user_id      = ovh_cloud_project_user.s3_users[each.key].id
+  policy = jsonencode({
+    "Statement" : concat([
+      {
+        "Sid" : "Admin",
+        "Effect" : "Allow",
+        "Action" : local.s3_admin_action,
+        "Resource" : [
+          #"arn:aws:s3:::${aws_s3_bucket.g4e-ifremer.id}",
+          #"arn:aws:s3:::${aws_s3_bucket.g4e-ifremer.id}/*",
+          "arn:aws:s3:::grid4earth", 
+          "arn:aws:s3:::grid4earth/*"
+        ]
+      },
+    ], local.s3_default_policy)
+  })
+}
+
+resource "ovh_cloud_project_user_s3_policy" "s3_readwrite_users" {
+  for_each     = local.s3_readwrite_users
   service_name = local.service_name
   user_id      = ovh_cloud_project_user.s3_users[each.key].id
   policy = jsonencode({
