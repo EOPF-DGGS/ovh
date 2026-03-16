@@ -88,7 +88,8 @@ locals {
     "pablo-richard", # Pablo Richard (CNRS subcontract)
     "benbovy", # Benoit Bovy (Georode)
     "allixender", # Alex Kmoch (Tartu Ülikool)
-    "luikiris", # Iris Luik (Tartu Ülikool)
+    #"luikiris", # Iris Luik (Tartu Ülikool)
+    "pcampeti", # Paolo Campeti
     "kmch", # Kajetan Chrapkiewicz (Tartu Ülikool)
     "annefou", # Anne Fouilloux (Lifewatch)
     "tik65536", # Wai Tik Chan 
